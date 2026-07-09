@@ -151,6 +151,32 @@
   .btn-sm{ padding:6px 10px; font-size:12px; }
   .help-text{ font-size:12px; color:var(--text-muted); line-height:1.5; margin:6px 0 0; }
 
+  /* ---- dashboard ---- */
+  .dash-kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:26px; }
+  .dash-kpi{ background:var(--card-alt); border:1px solid var(--border); border-radius:6px; padding:14px 16px; }
+  .dash-kpi .num{ font-family:var(--display); font-weight:700; font-size:30px; color:var(--gold); line-height:1; }
+  .dash-kpi .label{ font-size:12px; color:var(--text-muted); margin-top:6px; }
+  .chart-block{ margin-bottom:28px; }
+  .chart-title{
+    font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--text-muted); margin-bottom:16px;
+  }
+  .bars-wrap{ display:flex; align-items:flex-end; gap:14px; height:160px; padding:0 4px; border-bottom:1px solid var(--border); }
+  .bar-group{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+  .bar-pair{ display:flex; align-items:flex-end; gap:3px; }
+  .bar{ width:16px; border-radius:2px 2px 0 0; position:relative; min-height:2px; }
+  .bar.new{ background:var(--green); }
+  .bar.expired{ background:var(--red); }
+  .bar.active{ background:var(--gold); width:28px; }
+  .bar-val{ position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-family:var(--mono); font-size:10px; color:var(--text-muted); white-space:nowrap; }
+  .bar-label{ font-family:var(--mono); font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .legend{ display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--text-muted); flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .legend .dot{ width:10px; height:10px; border-radius:2px; display:inline-block; }
+  .legend .dot.new{ background:var(--green); }
+  .legend .dot.expired{ background:var(--red); }
+  .legend .dot.active{ background:var(--gold); }
+
   /* ---- main grid ---- */
   .grid{ display:grid; grid-template-columns:340px 1fr; gap:22px; align-items:start; }
   @media(max-width:860px){ .grid{ grid-template-columns:1fr; } }
@@ -339,6 +365,7 @@
     <p class="brand-eyebrow">Quản lý học viên — Boxing Studio</p>
     <h1 class="brand-title">HAPPY <span>WORRIORS</span></h1>
   </div>
+  <button class="settings-btn" id="dashboardToggle">📊 Dashboard</button>
   <button class="settings-btn" id="settingsToggle">⚙ Cài đặt &amp; đồng bộ Sheet</button>
 </div>
 <div class="rope"></div>
@@ -359,6 +386,24 @@
       <button class="btn btn-primary" id="saveSettingsBtn">Lưu cài đặt</button>
     </div>
     <p class="help-text">Chưa có Google Sheet? Xem phần "Hướng dẫn kết nối Google Sheet" ở cuối trang để tạo trong 2 phút.</p>
+  </div>
+
+  <div class="panel" id="dashboardPanel">
+    <h3>Dashboard học viên</h3>
+    <div class="dash-kpis" id="dashKpis"></div>
+    <div class="chart-block">
+      <div class="chart-title">Học viên đang hoạt động cuối mỗi tháng</div>
+      <div class="bars-wrap" id="activeChart"></div>
+      <div class="legend"><span><span class="dot active"></span>Đang hoạt động</span></div>
+    </div>
+    <div class="chart-block">
+      <div class="chart-title">Học viên mới vs hết hạn theo tháng</div>
+      <div class="bars-wrap" id="flowChart"></div>
+      <div class="legend">
+        <span><span class="dot new"></span>Đăng ký mới</span>
+        <span><span class="dot expired"></span>Hết hạn (theo ngày hết hạn hiện tại)</span>
+      </div>
+    </div>
   </div>
 
   <div class="grid">
@@ -525,6 +570,11 @@ function doPost(e) {
   var els = {
     settingsToggle: document.getElementById('settingsToggle'),
     settingsPanel: document.getElementById('settingsPanel'),
+    dashboardToggle: document.getElementById('dashboardToggle'),
+    dashboardPanel: document.getElementById('dashboardPanel'),
+    dashKpis: document.getElementById('dashKpis'),
+    activeChart: document.getElementById('activeChart'),
+    flowChart: document.getElementById('flowChart'),
     sheetUrlInput: document.getElementById('sheetUrlInput'),
     thresholdInput: document.getElementById('thresholdInput'),
     saveSettingsBtn: document.getElementById('saveSettingsBtn'),
@@ -657,6 +707,73 @@ function doPost(e) {
     return { key:'ok', label:'Còn hạn', remaining: remaining };
   }
 
+  // ---------- dashboard ----------
+  function computeMonthlyBuckets(monthsBack){
+    var now = new Date();
+    var buckets = [];
+    for(var i = monthsBack - 1; i >= 0; i--){
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      var monthStart = toISODate(new Date(d.getFullYear(), d.getMonth(), 1));
+      var monthEnd = toISODate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+      buckets.push({
+        label: (d.getMonth() + 1) + '/' + d.getFullYear(),
+        monthStart: monthStart,
+        monthEnd: monthEnd,
+        newCount: 0,
+        expiredCount: 0,
+        activeCount: 0
+      });
+    }
+    state.members.forEach(function(m){
+      buckets.forEach(function(b){
+        if(m.startDate >= b.monthStart && m.startDate <= b.monthEnd) b.newCount++;
+        if(m.endDate >= b.monthStart && m.endDate <= b.monthEnd) b.expiredCount++;
+        if(m.startDate <= b.monthEnd && m.endDate >= b.monthEnd) b.activeCount++;
+      });
+    });
+    return buckets;
+  }
+
+  function renderDashboard(){
+    var data = computeMonthlyBuckets(6);
+    var maxFlow = 1, maxActive = 1;
+    data.forEach(function(b){
+      maxFlow = Math.max(maxFlow, b.newCount, b.expiredCount);
+      maxActive = Math.max(maxActive, b.activeCount);
+    });
+    var barMaxHeight = 128;
+
+    var currentActive = state.members.filter(function(m){ return getStatus(m).key !== 'expired'; }).length;
+    var thisBucket = data[data.length - 1];
+    els.dashKpis.innerHTML =
+      '<div class="dash-kpi"><div class="num">' + currentActive + '</div><div class="label">Đang hoạt động</div></div>' +
+      '<div class="dash-kpi"><div class="num">+' + thisBucket.newCount + '</div><div class="label">Mới tháng này</div></div>' +
+      '<div class="dash-kpi"><div class="num">' + thisBucket.expiredCount + '</div><div class="label">Hết hạn tháng này</div></div>' +
+      '<div class="dash-kpi"><div class="num">' + state.members.length + '</div><div class="label">Tổng từ trước đến nay</div></div>';
+
+    els.activeChart.innerHTML = data.map(function(b){
+      var h = Math.max(2, Math.round((b.activeCount / maxActive) * barMaxHeight));
+      return '<div class="bar-group">' +
+        '<div class="bar-pair" style="height:' + barMaxHeight + 'px;">' +
+          '<div class="bar active" style="height:' + h + 'px;"><span class="bar-val">' + b.activeCount + '</span></div>' +
+        '</div>' +
+        '<div class="bar-label">' + b.label + '</div>' +
+      '</div>';
+    }).join('');
+
+    els.flowChart.innerHTML = data.map(function(b){
+      var hNew = Math.max(2, Math.round((b.newCount / maxFlow) * barMaxHeight));
+      var hExp = Math.max(2, Math.round((b.expiredCount / maxFlow) * barMaxHeight));
+      return '<div class="bar-group">' +
+        '<div class="bar-pair" style="height:' + barMaxHeight + 'px;">' +
+          '<div class="bar new" style="height:' + hNew + 'px;"><span class="bar-val">' + b.newCount + '</span></div>' +
+          '<div class="bar expired" style="height:' + hExp + 'px;"><span class="bar-val">' + b.expiredCount + '</span></div>' +
+        '</div>' +
+        '<div class="bar-label">' + b.label + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
   function gaugeSvg(member, status){
     var percent = member.durationDays > 0
       ? Math.max(0, Math.min(1, status.remaining / member.durationDays))
@@ -720,6 +837,8 @@ function doPost(e) {
         '</div></td>';
       els.rosterBody.appendChild(tr);
     });
+
+    renderDashboard();
   }
 
   function escapeHtml(s){
@@ -731,6 +850,10 @@ function doPost(e) {
   // ---------- event handlers ----------
   els.settingsToggle.addEventListener('click', function(){
     els.settingsPanel.classList.toggle('open');
+  });
+
+  els.dashboardToggle.addEventListener('click', function(){
+    els.dashboardPanel.classList.toggle('open');
   });
 
   els.fPackage.addEventListener('change', function(){
