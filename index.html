@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sổ Học Viên — Boxing Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#15100d;
+    --bg-alt:#0f0b09;
+    --card:#1e1814;
+    --card-alt:#241d18;
+    --border:#332920;
+    --red:#c8362a;
+    --red-dim:#7a231c;
+    --gold:#d4a017;
+    --green:#5a8f4f;
+    --text:#ede6dc;
+    --text-muted:#9c948a;
+    --mono:'IBM Plex Mono',monospace;
+    --display:'Bebas Neue',sans-serif;
+    --body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 0%, #2a2019 0%, transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--body);
+    min-height:100vh;
+    padding:0 0 60px 0;
+  }
+  ::selection{ background:var(--red); color:#fff; }
+
+  /* ---- header ---- */
+  .topbar{
+    padding:28px 24px 20px;
+    max-width:1180px;
+    margin:0 auto;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .brand-eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin:0 0 4px;
+  }
+  .brand-title{
+    font-family:var(--display);
+    font-size:44px;
+    letter-spacing:.03em;
+    line-height:1;
+    margin:0;
+    color:var(--text);
+  }
+  .brand-title span{ color:var(--red); }
+  .settings-btn{
+    background:var(--card);
+    border:1px solid var(--border);
+    color:var(--text-muted);
+    font-family:var(--body);
+    font-size:13px;
+    font-weight:600;
+    padding:10px 16px;
+    border-radius:4px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    transition:border-color .15s, color .15s;
+  }
+  .settings-btn:hover{ border-color:var(--gold); color:var(--gold); }
+
+  /* ---- rope divider ---- */
+  .rope{
+    height:6px;
+    max-width:1180px;
+    margin:0 auto 28px;
+    background:repeating-linear-gradient(
+      -45deg,
+      var(--red) 0px, var(--red) 10px,
+      #efe7d8 10px, #efe7d8 20px
+    );
+    opacity:.85;
+  }
+
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 24px; }
+
+  /* ---- settings panel ---- */
+  .panel{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:20px 22px;
+    margin-bottom:24px;
+    display:none;
+  }
+  .panel.open{ display:block; }
+  .panel h3{
+    font-family:var(--display);
+    font-size:22px;
+    letter-spacing:.02em;
+    margin:0 0 14px;
+    color:var(--gold);
+  }
+  .field-row{ display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px;}
+  .field{ display:flex; flex-direction:column; gap:6px; flex:1; min-width:220px;}
+  .field label{ font-size:12px; color:var(--text-muted); font-weight:600; letter-spacing:.02em; }
+  input[type=text], input[type=number], input[type=date], select, textarea{
+    background:var(--bg-alt);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:4px;
+    font-family:var(--body);
+    font-size:14px;
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:none; border-color:var(--red);
+  }
+  .btn{
+    font-family:var(--body);
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.02em;
+    border:none;
+    border-radius:4px;
+    padding:10px 18px;
+    cursor:pointer;
+    transition:filter .15s, transform .1s;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-primary{ background:var(--red); color:#fff; }
+  .btn-primary:hover{ filter:brightness(1.1); }
+  .btn-gold{ background:var(--gold); color:#241b06; }
+  .btn-gold:hover{ filter:brightness(1.1); }
+  .btn-ghost{ background:transparent; border:1px solid var(--border); color:var(--text-muted); }
+  .btn-ghost:hover{ border-color:var(--text-muted); color:var(--text); }
+  .btn-sm{ padding:6px 10px; font-size:12px; }
+  .help-text{ font-size:12px; color:var(--text-muted); line-height:1.5; margin:6px 0 0; }
+
+  /* ---- main grid ---- */
+  .grid{ display:grid; grid-template-columns:340px 1fr; gap:22px; align-items:start; }
+  @media(max-width:860px){ .grid{ grid-template-columns:1fr; } }
+
+  /* ---- ticket-style form card ---- */
+  .ticket{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:22px;
+    position:relative;
+    overflow:hidden;
+  }
+  .ticket::before, .ticket::after{
+    content:"";
+    position:absolute;
+    width:22px; height:22px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:50%;
+    top:50%;
+    transform:translateY(-50%);
+  }
+  .ticket::before{ left:-11px; }
+  .ticket::after{ right:-11px; }
+  .ticket h2{
+    font-family:var(--display);
+    font-size:26px;
+    letter-spacing:.03em;
+    margin:0 0 4px;
+  }
+  .ticket .sub{ font-size:12px; color:var(--text-muted); margin:0 0 18px; }
+  .form-stack{ display:flex; flex-direction:column; gap:12px; }
+  .form-stack .field label{ margin-bottom:2px; }
+  .duration-row{ display:flex; gap:8px; }
+  .duration-row select{ flex:1; }
+  .duration-row input{ width:100px; }
+  #customDaysField{ display:none; }
+
+  /* ---- roster panel ---- */
+  .roster-card{ background:var(--card); border:1px solid var(--border); border-radius:8px; padding:22px; }
+  .roster-head{ display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:14px; margin-bottom:16px;}
+  .roster-head h2{ font-family:var(--display); font-size:26px; letter-spacing:.03em; margin:0; }
+  .stats{ display:flex; gap:10px; flex-wrap:wrap; }
+  .stat-pill{
+    font-family:var(--mono);
+    font-size:12px;
+    padding:5px 11px;
+    border-radius:20px;
+    border:1px solid var(--border);
+    color:var(--text-muted);
+    white-space:nowrap;
+  }
+  .stat-pill b{ color:var(--text); font-weight:600; }
+  .stat-pill.warn{ border-color:var(--gold); color:var(--gold); }
+  .stat-pill.warn b{ color:var(--gold); }
+  .stat-pill.danger{ border-color:var(--red); color:var(--red); }
+  .stat-pill.danger b{ color:var(--red); }
+
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .toolbar input[type=text]{ flex:1; min-width:180px; }
+  .toggle-chip{
+    display:flex; align-items:center; gap:7px;
+    font-size:13px; color:var(--text-muted);
+    border:1px solid var(--border);
+    padding:9px 12px;
+    border-radius:4px;
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
+  }
+  .toggle-chip.active{ color:var(--gold); border-color:var(--gold); }
+
+  table{ width:100%; border-collapse:collapse; }
+  .table-wrap{ overflow-x:auto; }
+  thead th{
+    text-align:left;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    padding:0 10px 10px;
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:12px 10px;
+    border-bottom:1px solid var(--border);
+    font-size:13.5px;
+    vertical-align:middle;
+    white-space:nowrap;
+  }
+  tbody tr:hover{ background:var(--card-alt); }
+  .name-cell{ font-weight:700; }
+  .phone-cell{ font-family:var(--mono); color:var(--text-muted); font-size:13px; }
+  .mono{ font-family:var(--mono); font-size:13px; color:var(--text-muted); }
+
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    padding:4px 9px;
+    border-radius:20px;
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .badge.ok{ background:rgba(90,143,79,.15); color:var(--green); border:1px solid var(--green); }
+  .badge.warn{ background:rgba(212,160,23,.15); color:var(--gold); border:1px solid var(--gold); }
+  .badge.expired{ background:rgba(200,54,42,.15); color:var(--red); border:1px solid var(--red); }
+
+  .gauge-cell{ display:flex; align-items:center; gap:8px; }
+  .gauge-cell .days-num{ font-family:var(--mono); font-size:13px; }
+
+  .row-actions{ display:flex; gap:6px; }
+  .icon-btn{
+    border:1px solid var(--border);
+    background:transparent;
+    color:var(--text-muted);
+    border-radius:4px;
+    padding:5px 9px;
+    font-size:12px;
+    cursor:pointer;
+    font-family:var(--body);
+  }
+  .icon-btn:hover{ border-color:var(--gold); color:var(--gold); }
+  .icon-btn.danger:hover{ border-color:var(--red); color:var(--red); }
+
+  .empty-state{ text-align:center; padding:50px 20px; color:var(--text-muted); }
+  .empty-state .glove{ font-family:var(--display); font-size:32px; color:var(--border); margin-bottom:6px; }
+
+  /* ---- instructions ---- */
+  details.instructions{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:8px;
+    margin-top:24px;
+    padding:18px 22px;
+  }
+  details.instructions summary{
+    cursor:pointer;
+    font-family:var(--display);
+    font-size:20px;
+    letter-spacing:.02em;
+    color:var(--gold);
+    list-style:none;
+  }
+  details.instructions summary::-webkit-details-marker{ display:none; }
+  details.instructions summary::before{ content:"▸  "; }
+  details.instructions[open] summary::before{ content:"▾  "; }
+  .steps{ margin:16px 0; padding-left:20px; color:var(--text); font-size:14px; line-height:1.7; }
+  .steps li{ margin-bottom:6px; }
+  .code-block{
+    position:relative;
+    background:var(--bg-alt);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:16px;
+    margin:14px 0;
+  }
+  .code-block pre{
+    margin:0;
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:#c9d1a8;
+    overflow-x:auto;
+    white-space:pre;
+  }
+  .copy-btn{
+    position:absolute; top:10px; right:10px;
+  }
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--gold); color:#241b06; font-weight:700; font-size:13px;
+    padding:11px 20px; border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,.4);
+    opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;
+    z-index:50;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <p class="brand-eyebrow">Quản lý học viên</p>
+    <h1 class="brand-title">SỔ <span>ĐẤM</span> — BOXING CLUB</h1>
+  </div>
+  <button class="settings-btn" id="settingsToggle">⚙ Cài đặt &amp; đồng bộ Sheet</button>
+</div>
+<div class="rope"></div>
+
+<div class="wrap">
+
+  <div class="panel" id="settingsPanel">
+    <h3>Cài đặt đồng bộ Google Sheet</h3>
+    <div class="field-row">
+      <div class="field" style="flex:2;">
+        <label>URL Web App (Google Apps Script)</label>
+        <input type="text" id="sheetUrlInput" placeholder="https://script.google.com/macros/s/XXXXXXX/exec">
+      </div>
+      <div class="field" style="max-width:180px;">
+        <label>Ngưỡng sắp hết hạn (ngày)</label>
+        <input type="number" id="thresholdInput" min="1" value="3">
+      </div>
+      <button class="btn btn-primary" id="saveSettingsBtn">Lưu cài đặt</button>
+    </div>
+    <p class="help-text">Chưa có Google Sheet? Xem phần "Hướng dẫn kết nối Google Sheet" ở cuối trang để tạo trong 2 phút.</p>
+  </div>
+
+  <div class="grid">
+    <!-- registration form -->
+    <div class="ticket">
+      <h2>Phiếu đăng ký</h2>
+      <p class="sub">Nhập thông tin học viên mới</p>
+      <div class="form-stack">
+        <div class="field">
+          <label>Họ và tên *</label>
+          <input type="text" id="fName" placeholder="Nguyễn Văn A">
+        </div>
+        <div class="field">
+          <label>Số điện thoại *</label>
+          <input type="text" id="fPhone" placeholder="09xxxxxxxx">
+        </div>
+        <div class="field">
+          <label>Ngày bắt đầu tập</label>
+          <input type="date" id="fStart">
+        </div>
+        <div class="field">
+          <label>Gói tập</label>
+          <div class="duration-row">
+            <select id="fPackage">
+              <option value="30">1 tháng (30 ngày)</option>
+              <option value="90">3 tháng (90 ngày)</option>
+              <option value="180">6 tháng (180 ngày)</option>
+              <option value="365">1 năm (365 ngày)</option>
+              <option value="custom">Tùy chỉnh...</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" id="customDaysField">
+          <label>Số ngày tùy chỉnh</label>
+          <input type="number" id="fCustomDays" min="1" placeholder="Ví dụ: 45">
+        </div>
+        <div class="field">
+          <label>Ghi chú</label>
+          <textarea id="fNote" rows="2" placeholder="Huấn luyện viên, gói combo, v.v."></textarea>
+        </div>
+        <button class="btn btn-primary" id="addMemberBtn" style="margin-top:6px;">+ Thêm học viên</button>
+      </div>
+    </div>
+
+    <!-- roster -->
+    <div class="roster-card">
+      <div class="roster-head">
+        <h2>Danh sách học viên</h2>
+        <div class="stats" id="statsRow"></div>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="searchInput" placeholder="Tìm theo tên hoặc số điện thoại...">
+        <div class="toggle-chip" id="expiringToggle">☐ Chỉ hiện sắp/đã hết hạn</div>
+        <button class="btn btn-gold btn-sm" id="syncAllBtn">⟳ Đồng bộ tất cả</button>
+      </div>
+      <div class="table-wrap">
+        <table id="rosterTable">
+          <thead>
+            <tr>
+              <th>Học viên</th>
+              <th>SĐT</th>
+              <th>Bắt đầu</th>
+              <th>Gói</th>
+              <th>Hết hạn</th>
+              <th>Còn lại</th>
+              <th>Trạng thái</th>
+              <th>Đồng bộ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="rosterBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="glove">— 0 —</div>
+        Chưa có học viên nào. Thêm học viên đầu tiên ở bên trái.
+      </div>
+    </div>
+  </div>
+
+  <details class="instructions">
+    <summary>Hướng dẫn kết nối Google Sheet (làm 1 lần, mất ~2 phút)</summary>
+    <ol class="steps">
+      <li>Vào <b>sheets.new</b> để tạo một Google Sheet mới, đặt tên tuỳ ý (ví dụ "Học viên Boxing").</li>
+      <li>Trong Sheet, chọn menu <b>Tiện ích mở rộng → Apps Script</b>.</li>
+      <li>Xoá hết code mẫu (myFunction), dán đoạn code bên dưới vào.</li>
+      <li>Nhấn biểu tượng lưu (đĩa mềm), đặt tên project bất kỳ.</li>
+      <li>Nhấn nút <b>Triển khai → Triển khai mới</b>. Ở mục "Chọn loại", chọn <b>Ứng dụng web</b>.</li>
+      <li>Ở "Người thực thi": chọn <b>Tôi (email của bạn)</b>. Ở "Ai có quyền truy cập": chọn <b>Bất kỳ ai</b>.</li>
+      <li>Nhấn <b>Triển khai</b>, cấp quyền truy cập (nếu hiện cảnh báo "Google chưa xác minh app", chọn "Advanced/Nâng cao" → "Đi tới [tên project] (không an toàn)" → Allow). Đây là app bạn tự tạo nên hoàn toàn an toàn.</li>
+      <li>Copy URL dạng <span class="mono">https://script.google.com/macros/s/xxxx/exec</span> và dán vào ô "URL Web App" ở phần Cài đặt phía trên, rồi bấm Lưu.</li>
+      <li>Mỗi lần thêm/gia hạn học viên, app sẽ tự động gửi 1 dòng dữ liệu vào Sheet của bạn.</li>
+    </ol>
+    <div class="code-block">
+      <button class="btn btn-ghost btn-sm copy-btn" id="copyCodeBtn">Copy code</button>
+      <pre id="appsScriptCode">function doGet(e) {
+  return ContentService.createTextOutput('Web App đang hoạt động. Hãy dùng URL này trong phần Cài đặt của app Boxing.');
+}
+
+function doPost(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('HocVien') || ss.insertSheet('HocVien');
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['ID','Họ tên','SĐT','Ngày bắt đầu','Gói tập','Số ngày','Ngày hết hạn','Ghi chú','Loại','Thời gian gửi']);
+  }
+
+  var data = JSON.parse(e.postData.contents);
+  sheet.appendRow([
+    data.id,
+    data.name,
+    data.phone,
+    data.startDate,
+    data.packageLabel,
+    data.durationDays,
+    data.endDate,
+    data.note || '',
+    data.action || 'dang_ky',
+    new Date()
+  ]);
+
+  return ContentService.createTextOutput(JSON.stringify({status:'ok'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+    </div>
+    <p class="help-text">Lưu ý: trình duyệt gọi URL này ở chế độ "no-cors" nên app không đọc được phản hồi chi tiết từ Google — nếu URL đúng và đã triển khai với quyền "Bất kỳ ai", dữ liệu vẫn sẽ được ghi vào Sheet bình thường, cứ kiểm tra lại Sheet để xác nhận.</p>
+  </details>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  var state = {
+    members: [],
+    config: { sheetUrl: '', threshold: 3 },
+    search: '',
+    onlyExpiring: false
+  };
+
+  var els = {
+    settingsToggle: document.getElementById('settingsToggle'),
+    settingsPanel: document.getElementById('settingsPanel'),
+    sheetUrlInput: document.getElementById('sheetUrlInput'),
+    thresholdInput: document.getElementById('thresholdInput'),
+    saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+    fName: document.getElementById('fName'),
+    fPhone: document.getElementById('fPhone'),
+    fStart: document.getElementById('fStart'),
+    fPackage: document.getElementById('fPackage'),
+    customDaysField: document.getElementById('customDaysField'),
+    fCustomDays: document.getElementById('fCustomDays'),
+    fNote: document.getElementById('fNote'),
+    addMemberBtn: document.getElementById('addMemberBtn'),
+    searchInput: document.getElementById('searchInput'),
+    expiringToggle: document.getElementById('expiringToggle'),
+    syncAllBtn: document.getElementById('syncAllBtn'),
+    rosterBody: document.getElementById('rosterBody'),
+    emptyState: document.getElementById('emptyState'),
+    statsRow: document.getElementById('statsRow'),
+    copyCodeBtn: document.getElementById('copyCodeBtn'),
+    appsScriptCode: document.getElementById('appsScriptCode'),
+    toast: document.getElementById('toast')
+  };
+
+  // ---------- date helpers ----------
+  function toISODate(d){ return d.toISOString().slice(0,10); }
+  function todayISO(){ return toISODate(new Date()); }
+  function addDays(dateStr, days){
+    var d = new Date(dateStr + 'T00:00:00');
+    d.setDate(d.getDate() + Number(days));
+    return toISODate(d);
+  }
+  function daysBetween(fromStr, toStr){
+    var a = new Date(fromStr + 'T00:00:00');
+    var b = new Date(toStr + 'T00:00:00');
+    return Math.round((b - a) / 86400000);
+  }
+  function formatVN(dateStr){
+    if(!dateStr) return '—';
+    var p = dateStr.split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+
+  function showToast(msg){
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){ els.toast.classList.remove('show'); }, 2600);
+  }
+
+  // ---------- storage ----------
+  async function loadState(){
+    try{
+      var m = localStorage.getItem('boxing_members');
+      state.members = m ? JSON.parse(m) : [];
+    }catch(e){ state.members = []; }
+    try{
+      var c = localStorage.getItem('boxing_config');
+      if(c){
+        var parsed = JSON.parse(c);
+        state.config.sheetUrl = parsed.sheetUrl || '';
+        state.config.threshold = parsed.threshold || 3;
+      }
+    }catch(e){ /* keep defaults */ }
+    els.sheetUrlInput.value = state.config.sheetUrl;
+    els.thresholdInput.value = state.config.threshold;
+  }
+
+  async function saveMembers(){
+    try{
+      localStorage.setItem('boxing_members', JSON.stringify(state.members));
+    }catch(e){ showToast('Lỗi lưu dữ liệu cục bộ, thử lại.'); }
+  }
+
+  async function saveConfig(){
+    try{
+      localStorage.setItem('boxing_config', JSON.stringify(state.config));
+    }catch(e){ showToast('Lỗi lưu cài đặt.'); }
+  }
+
+  // ---------- sync to google sheet ----------
+  async function syncMember(member, action){
+    if(!state.config.sheetUrl){
+      showToast('Chưa cài URL Google Sheet trong phần Cài đặt.');
+      return false;
+    }
+    try{
+      await fetch(state.config.sheetUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          id: member.id,
+          name: member.name,
+          phone: member.phone,
+          startDate: member.startDate,
+          packageLabel: member.packageLabel,
+          durationDays: member.durationDays,
+          endDate: member.endDate,
+          note: member.note,
+          action: action || 'dang_ky'
+        })
+      });
+      member.synced = true;
+      return true;
+    }catch(err){
+      member.synced = false;
+      return false;
+    }
+  }
+
+  // ---------- derived status ----------
+  function getStatus(member){
+    var remaining = daysBetween(todayISO(), member.endDate);
+    if(remaining < 0) return { key:'expired', label:'Đã hết hạn', remaining: remaining };
+    if(remaining <= state.config.threshold) return { key:'warn', label:'Sắp hết hạn', remaining: remaining };
+    return { key:'ok', label:'Còn hạn', remaining: remaining };
+  }
+
+  function gaugeSvg(member, status){
+    var percent = member.durationDays > 0
+      ? Math.max(0, Math.min(1, status.remaining / member.durationDays))
+      : 0;
+    var r = 15, c = 2 * Math.PI * r;
+    var offset = c * (1 - percent);
+    var color = status.key === 'ok' ? 'var(--green)' : status.key === 'warn' ? 'var(--gold)' : 'var(--red)';
+    return '<svg width="34" height="34" viewBox="0 0 34 34">' +
+      '<circle cx="17" cy="17" r="' + r + '" fill="none" stroke="var(--border)" stroke-width="4"/>' +
+      '<circle cx="17" cy="17" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="4" ' +
+      'stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + offset.toFixed(1) + '" ' +
+      'stroke-linecap="round" transform="rotate(-90 17 17)"/></svg>';
+  }
+
+  // ---------- render ----------
+  function render(){
+    var q = state.search.trim().toLowerCase();
+    var list = state.members.filter(function(m){
+      var matchesSearch = !q || m.name.toLowerCase().indexOf(q) !== -1 || m.phone.indexOf(q) !== -1;
+      if(!matchesSearch) return false;
+      if(state.onlyExpiring){
+        var st = getStatus(m);
+        if(st.key === 'ok') return false;
+      }
+      return true;
+    });
+
+    list.sort(function(a, b){
+      return daysBetween(todayISO(), a.endDate) - daysBetween(todayISO(), b.endDate);
+    });
+
+    // stats
+    var totalCount = state.members.length;
+    var warnCount = state.members.filter(function(m){ return getStatus(m).key === 'warn'; }).length;
+    var expiredCount = state.members.filter(function(m){ return getStatus(m).key === 'expired'; }).length;
+    els.statsRow.innerHTML =
+      '<span class="stat-pill">Tổng: <b>' + totalCount + '</b></span>' +
+      '<span class="stat-pill warn">Sắp hết hạn: <b>' + warnCount + '</b></span>' +
+      '<span class="stat-pill danger">Đã hết hạn: <b>' + expiredCount + '</b></span>';
+
+    els.emptyState.style.display = list.length ? 'none' : 'block';
+    els.rosterBody.innerHTML = '';
+
+    list.forEach(function(m){
+      var status = getStatus(m);
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="name-cell">' + escapeHtml(m.name) + '</td>' +
+        '<td class="phone-cell">' + escapeHtml(m.phone) + '</td>' +
+        '<td class="mono">' + formatVN(m.startDate) + '</td>' +
+        '<td>' + escapeHtml(m.packageLabel) + '</td>' +
+        '<td class="mono">' + formatVN(m.endDate) + '</td>' +
+        '<td><div class="gauge-cell">' + gaugeSvg(m, status) +
+          '<span class="days-num">' + (status.remaining < 0 ? (Math.abs(status.remaining) + ' ngày trước') : (status.remaining + ' ngày')) + '</span></div></td>' +
+        '<td><span class="badge ' + status.key + '">' + status.label + '</span></td>' +
+        '<td>' + (m.synced ? '<span class="badge ok">Đã gửi</span>' : '<span class="badge warn">Chưa gửi</span>') + '</td>' +
+        '<td><div class="row-actions">' +
+          '<button class="icon-btn" data-action="renew" data-id="' + m.id + '" title="Gia hạn thêm 1 chu kỳ">⟲ Gia hạn</button>' +
+          '<button class="icon-btn" data-action="sync" data-id="' + m.id + '" title="Đồng bộ lại">⟳</button>' +
+          '<button class="icon-btn danger" data-action="delete" data-id="' + m.id + '" title="Xoá">✕</button>' +
+        '</div></td>';
+      els.rosterBody.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
+  // ---------- event handlers ----------
+  els.settingsToggle.addEventListener('click', function(){
+    els.settingsPanel.classList.toggle('open');
+  });
+
+  els.fPackage.addEventListener('change', function(){
+    els.customDaysField.style.display = els.fPackage.value === 'custom' ? 'flex' : 'none';
+  });
+
+  els.saveSettingsBtn.addEventListener('click', async function(){
+    state.config.sheetUrl = els.sheetUrlInput.value.trim();
+    state.config.threshold = Math.max(1, Number(els.thresholdInput.value) || 3);
+    await saveConfig();
+    render();
+    showToast('Đã lưu cài đặt.');
+  });
+
+  els.addMemberBtn.addEventListener('click', async function(){
+    var name = els.fName.value.trim();
+    var phone = els.fPhone.value.trim();
+    var start = els.fStart.value || todayISO();
+    var pkgVal = els.fPackage.value;
+    var durationDays, packageLabel;
+
+    if(!name || !phone){
+      showToast('Vui lòng nhập họ tên và số điện thoại.');
+      return;
+    }
+
+    if(pkgVal === 'custom'){
+      durationDays = Number(els.fCustomDays.value);
+      if(!durationDays || durationDays <= 0){
+        showToast('Vui lòng nhập số ngày tùy chỉnh hợp lệ.');
+        return;
+      }
+      packageLabel = 'Tùy chỉnh (' + durationDays + ' ngày)';
+    } else {
+      durationDays = Number(pkgVal);
+      packageLabel = els.fPackage.options[els.fPackage.selectedIndex].text;
+    }
+
+    var member = {
+      id: 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      name: name,
+      phone: phone,
+      startDate: start,
+      packageLabel: packageLabel,
+      durationDays: durationDays,
+      endDate: addDays(start, durationDays),
+      note: els.fNote.value.trim(),
+      createdAt: new Date().toISOString(),
+      synced: false
+    };
+
+    state.members.push(member);
+    await saveMembers();
+    render();
+
+    // clear form
+    els.fName.value = '';
+    els.fPhone.value = '';
+    els.fStart.value = '';
+    els.fCustomDays.value = '';
+    els.fNote.value = '';
+    els.fPackage.value = '30';
+    els.customDaysField.style.display = 'none';
+
+    showToast('Đã thêm học viên. Đang đồng bộ Google Sheet...');
+    var ok = await syncMember(member, 'dang_ky');
+    await saveMembers();
+    render();
+    showToast(ok ? 'Đã gửi lên Google Sheet.' : (state.config.sheetUrl ? 'Gửi thất bại, sẽ thử lại sau.' : 'Đã lưu cục bộ (chưa cài URL Sheet).'));
+  });
+
+  els.searchInput.addEventListener('input', function(){
+    state.search = els.searchInput.value;
+    render();
+  });
+
+  els.expiringToggle.addEventListener('click', function(){
+    state.onlyExpiring = !state.onlyExpiring;
+    els.expiringToggle.classList.toggle('active', state.onlyExpiring);
+    els.expiringToggle.textContent = (state.onlyExpiring ? '☑' : '☐') + ' Chỉ hiện sắp/đã hết hạn';
+    render();
+  });
+
+  els.syncAllBtn.addEventListener('click', async function(){
+    if(!state.config.sheetUrl){
+      showToast('Chưa cài URL Google Sheet trong phần Cài đặt.');
+      return;
+    }
+    var pending = state.members.filter(function(m){ return !m.synced; });
+    if(!pending.length){
+      showToast('Tất cả học viên đã được đồng bộ.');
+      return;
+    }
+    showToast('Đang đồng bộ ' + pending.length + ' học viên...');
+    for(var i = 0; i < pending.length; i++){
+      await syncMember(pending[i], 'dang_ky');
+      await new Promise(function(res){ setTimeout(res, 250); });
+    }
+    await saveMembers();
+    render();
+    showToast('Đã đồng bộ xong.');
+  });
+
+  els.rosterBody.addEventListener('click', async function(e){
+    var btn = e.target.closest('button[data-action]');
+    if(!btn) return;
+    var id = btn.getAttribute('data-id');
+    var action = btn.getAttribute('data-action');
+    var member = state.members.find(function(m){ return m.id === id; });
+    if(!member) return;
+
+    if(action === 'delete'){
+      if(!confirm('Xoá học viên "' + member.name + '"?')) return;
+      state.members = state.members.filter(function(m){ return m.id !== id; });
+      await saveMembers();
+      render();
+      showToast('Đã xoá học viên.');
+    }
+
+    if(action === 'sync'){
+      showToast('Đang đồng bộ...');
+      var ok = await syncMember(member, 'dong_bo_lai');
+      await saveMembers();
+      render();
+      showToast(ok ? 'Đã gửi lên Google Sheet.' : 'Gửi thất bại, kiểm tra lại URL trong Cài đặt.');
+    }
+
+    if(action === 'renew'){
+      var base = daysBetween(todayISO(), member.endDate) < 0 ? todayISO() : member.endDate;
+      member.endDate = addDays(base, member.durationDays);
+      member.synced = false;
+      await saveMembers();
+      render();
+      showToast('Đã gia hạn thêm ' + member.durationDays + ' ngày. Đang đồng bộ...');
+      var ok2 = await syncMember(member, 'gia_han');
+      await saveMembers();
+      render();
+      showToast(ok2 ? 'Đã gia hạn và đồng bộ.' : 'Đã gia hạn cục bộ, đồng bộ thất bại.');
+    }
+  });
+
+  els.copyCodeBtn.addEventListener('click', function(){
+    var text = els.appsScriptCode.textContent;
+    try{
+      navigator.clipboard.writeText(text).then(function(){
+        els.copyCodeBtn.textContent = 'Đã copy!';
+        setTimeout(function(){ els.copyCodeBtn.textContent = 'Copy code'; }, 1800);
+      });
+    }catch(e){
+      showToast('Không thể copy tự động, vui lòng bôi đen và copy thủ công.');
+    }
+  });
+
+  // ---------- init ----------
+  (async function init(){
+    els.fStart.value = todayISO();
+    await loadState();
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
