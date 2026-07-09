@@ -450,7 +450,7 @@
       <li>Ở "Người thực thi": chọn <b>Tôi (email của bạn)</b>. Ở "Ai có quyền truy cập": chọn <b>Bất kỳ ai</b>.</li>
       <li>Nhấn <b>Triển khai</b>, cấp quyền truy cập (nếu hiện cảnh báo "Google chưa xác minh app", chọn "Advanced/Nâng cao" → "Đi tới [tên project] (không an toàn)" → Allow). Đây là app bạn tự tạo nên hoàn toàn an toàn.</li>
       <li>Copy URL dạng <span class="mono">https://script.google.com/macros/s/xxxx/exec</span> và dán vào ô "URL Web App" ở phần Cài đặt phía trên, rồi bấm Lưu.</li>
-      <li>Mỗi lần thêm/gia hạn học viên, app sẽ tự động gửi 1 dòng dữ liệu vào Sheet của bạn.</li>
+      <li>Mỗi lần thêm/gia hạn học viên, app sẽ tự động gửi 1 dòng dữ liệu vào Sheet <b>"HocVien"</b>. Khi xoá học viên trên app, dòng đó sẽ được chuyển sang Sheet <b>"DaXoa"</b> (tự tạo) kèm thời gian xoá, để bạn xem lại lịch sử khi cần.</li>
     </ol>
     <div class="code-block">
       <button class="btn btn-ghost btn-sm copy-btn" id="copyCodeBtn">Copy code</button>
@@ -461,12 +461,32 @@
 function doPost(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName('HocVien') || ss.insertSheet('HocVien');
+  var trashSheet = ss.getSheetByName('DaXoa') || ss.insertSheet('DaXoa');
+
+  var headers = ['ID','Họ tên','SĐT','Ngày bắt đầu','Gói tập','Số ngày','Ngày hết hạn','Ghi chú','Loại','Thời gian gửi'];
 
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['ID','Họ tên','SĐT','Ngày bắt đầu','Gói tập','Số ngày','Ngày hết hạn','Ghi chú','Loại','Thời gian gửi']);
+    sheet.appendRow(headers);
+  }
+  if (trashSheet.getLastRow() === 0) {
+    trashSheet.appendRow(headers.concat(['Thời gian xoá']));
   }
 
   var data = JSON.parse(e.postData.contents);
+
+  if (data.action === 'xoa') {
+    var values = sheet.getDataRange().getValues();
+    for (var i = values.length - 1; i >= 1; i--) {
+      if (String(values[i][0]) === String(data.id)) {
+        var rowData = values[i].concat([new Date()]);
+        trashSheet.appendRow(rowData);
+        sheet.deleteRow(i + 1);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({status:'ok', action:'deleted'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   sheet.appendRow([
     data.id,
     data.name,
@@ -610,6 +630,21 @@ function doPost(e) {
       return true;
     }catch(err){
       member.synced = false;
+      return false;
+    }
+  }
+
+  async function syncDelete(member){
+    if(!state.config.sheetUrl) return false;
+    try{
+      await fetch(state.config.sheetUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ id: member.id, action: 'xoa' })
+      });
+      return true;
+    }catch(err){
       return false;
     }
   }
@@ -808,11 +843,15 @@ function doPost(e) {
     if(!member) return;
 
     if(action === 'delete'){
-      if(!confirm('Xoá học viên "' + member.name + '"?')) return;
+      if(!confirm('Xoá học viên "' + member.name + '"? Dữ liệu tương ứng trên Google Sheet cũng sẽ được xoá.')) return;
+      showToast('Đang xoá...');
+      var deletedOk = await syncDelete(member);
       state.members = state.members.filter(function(m){ return m.id !== id; });
       await saveMembers();
       render();
-      showToast('Đã xoá học viên.');
+      showToast(state.config.sheetUrl
+        ? (deletedOk ? 'Đã xoá học viên (cục bộ và trên Sheet).' : 'Đã xoá cục bộ, xoá trên Sheet thất bại.')
+        : 'Đã xoá học viên (chưa cài URL Sheet nên chỉ xoá cục bộ).');
     }
 
     if(action === 'sync'){
